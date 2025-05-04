@@ -1,4 +1,4 @@
-package by.andros.lea_front.auth.presentation.login
+package by.andros.lea_front.auth.presentation.registration
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,11 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -27,11 +23,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import by.andros.lea_front.auth.presentation.login.LoginEvent
 
 @Composable
-fun LoginScreen(
-    viewModel: LoginViewModel = hiltViewModel(),
-    onNavigateToRegistration: () -> Unit,
+fun RegistrationScreen(
+    viewModel: RegistrationViewModel = hiltViewModel(),
+    onNavigateToLogin: () -> Unit,
     onNavigateToHome: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
@@ -39,7 +36,7 @@ fun LoginScreen(
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is LoginEvent.Navigation.ToHome -> onNavigateToHome()
+                is RegistrationEvent.Navigation.ToHome -> onNavigateToHome()
                 else -> {}
             }
         }
@@ -56,20 +53,28 @@ fun LoginScreen(
         
         OutlinedTextField(
             value = state.login,
-            onValueChange = { viewModel.onEvent(LoginEvent.LoginChanged(it)) },
-            label = { Text("Email") },
+            onValueChange = { viewModel.onEvent(RegistrationEvent.LoginChanged(it)) },
+            label = { Text("Login") },
             modifier = Modifier.fillMaxWidth()
         )
         
         OutlinedTextField(
             value = state.password,
-            onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
+            onValueChange = { viewModel.onEvent(RegistrationEvent.PasswordChanged(it)) },
             label = { Text("Password") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
         
-        if (!state.isLoading and !state.isSuccess){
+        OutlinedTextField(
+            value = state.confirmation,
+            onValueChange = { viewModel.onEvent(RegistrationEvent.ConfirmationChanged(it)) },
+            label = { Text("Confirmation") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        if (!state.isLoading and !state.isSuccess) {
             Spacer(modifier = Modifier.height(24.dp))
         }
         
@@ -93,44 +98,29 @@ fun LoginScreen(
         }
         
         ElevatedButton(
-            onClick = { viewModel.onEvent(LoginEvent.Submit) },
+            onClick = { viewModel.onEvent(RegistrationEvent.Register) },
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.isLoading
         ) {
-            Text("Login")
+            Text("Register")
         }
         
-        Row (
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            FilledIconButton(
-                onClick = {
-                    viewModel.onEvent(LoginEvent.GoogleSignIn)
-                }
-            ) {
-                Icon(Icons.Filled.AccountCircle, "")
-            }
-        }
-        
-        Row (
+        Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            TextButton (
+            TextButton(
                 onClick = {
-                    onNavigateToRegistration()
+                    onNavigateToLogin()
                 },
                 enabled = !state.isLoading
             ) {
-                Text("Sign up")
+                Text("Sign in")
             }
             
             Spacer(modifier = Modifier.width(12.dp))
             
-            TextButton (
+            TextButton(
                 onClick = {
                     onNavigateToHome()
                 },
@@ -139,8 +129,5 @@ fun LoginScreen(
                 Text("Continue without account")
             }
         }
-        
-        
     }
 }
-

@@ -2,20 +2,34 @@ package by.andros.lea_front.auth.presentation.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import by.andros.lea_front.auth.domain.LoginUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import jakarta.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class LoginViewModel: ViewModel() {
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val loginUseCase: LoginUseCase
+) : ViewModel() {
     private val _state = MutableStateFlow(LoginState())
     val state: StateFlow<LoginState> = _state
+    
+    private val _events = MutableSharedFlow<LoginEvent.Navigation>()
+    val events = _events.asSharedFlow()
     
     fun onEvent(event: LoginEvent) {
         when(event){
             is LoginEvent.LoginChanged -> updateLogin(event.login)
             is LoginEvent.PasswordChanged -> updatePassword(event.password)
             is LoginEvent.Submit -> login()
+            is LoginEvent.ToRegistration -> _events.tryEmit(LoginEvent.Navigation.ToRegistration)
+            is LoginEvent.WithoutAuth -> _events.tryEmit(LoginEvent.Navigation.ToHome)
+            is LoginEvent.GoogleSignIn -> googleSignIn()
         }
     }
     
@@ -42,38 +56,37 @@ class LoginViewModel: ViewModel() {
     }
     
     private fun login() {
-        val currentLogin = _state.value.login
-        val currentPassword = _state.value.password
-        
-        if (currentLogin.isBlank() || currentPassword.isBlank() || currentPassword.length < 8) {
-            _state.update {
-                it.copy(
-                    error = when {
-                        currentPassword.isBlank() -> "Password cannot be empty"
-                        currentPassword.length < 8 -> "Password too short"
-                        else -> null
-                    }
-                )
-            }
-            return
-        }
-        
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             
-            try {
-                
-                //TODO MAKE LOGIN REQUEST
-                
-                _state.update { it.copy(isSuccess = true, isLoading = false) }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = e.message ?: "Login failed"
-                    )
+            loginUseCase(
+                _state.value.login,
+                _state.value.password
+            ).fold(
+                onSuccess = {
+                    _state.update { state ->
+                        state.copy(
+                            isSuccess = true,
+                            isLoading = false,
+                            login = "",
+                            password = ""
+                        )
+                    }
+                    _events.emit(LoginEvent.Navigation.ToHome)
+                },
+                onFailure = { error ->
+                    _state.update { state ->
+                        state.copy(
+                            error = error.message ?: "Login failed",
+                            isLoading = false
+                        )
+                    }
                 }
-            }
+            )
         }
+    }
+    
+    private fun googleSignIn() {
+        //TODO authenticate with fucking google
     }
 }

@@ -1,5 +1,5 @@
 [versions]
-agp = "8.8.2"
+agp = "8.10.0"
 converterGson = "2.5.0"
 hiltAndroid = "2.56.1"
 hiltCompiler = "1.2.0"
@@ -16,6 +16,7 @@ materialIconsExtended = "1.7.6"
 materialZ = "1.9.0-alpha01"
 retrofit = "2.9.0"
 roomRuntime = "2.6.1"
+securityCrypto = "1.1.0-alpha07"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -29,6 +30,7 @@ androidx-material-z = { module = "androidx.compose.material:material-*", version
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomRuntime" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }

@@ -1,81 +1,45 @@
 package by.andros.lea_front.app.presentation.home
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import by.andros.lea_front.app.data.Deck
-import by.andros.lea_front.app.data.DeckRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableSharedFlow
+import jakarta.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.update
 
-sealed class HomePageState {
-    data object Loading : HomePageState()
-    data class Loaded(val decks: List<Deck>) : HomePageState()
-    data class Error(val message: String) : HomePageState()
+
+sealed class Screen(val route: String) {
+    data object Home : Screen("home")
+    data object Learning : Screen("Learning")
 }
 
-sealed class HomePageEvent {
-    data object LoadDecks : HomePageEvent()
-    data class DeckSelected(val deckId: Long) : HomePageEvent()
-    data object ShowAllDecks : HomePageEvent()
+data class HomeScreenState(
+    val currentRoute: String = Screen.Home.route,
+    val isLoading: Boolean = false,
+)
 
-    sealed class Navigation {
-        data object ToAllDecks : Navigation()
-        data class ToDeckDetails(val deckId: Long) : Navigation()
-        data class ToCards(val deckId: Long) : Navigation()
-    }
+sealed class HomeScreenEvent {
+    data object NavigateToHome : HomeScreenEvent()
+    data object NavigateToLearning : HomeScreenEvent()
+    data class SyncRoute(val route: String) : HomeScreenEvent()
 }
 
 @HiltViewModel
-class HomePageViewModel @Inject constructor(
-    private val deckRepository: DeckRepository
+class HomeViewModel @Inject constructor(
+
 ) : ViewModel() {
-    private val _state = MutableStateFlow<HomePageState>(HomePageState.Loading)
-    val state: StateFlow<HomePageState> = _state
+    private val _state = MutableStateFlow(HomeScreenState())
+    val state: StateFlow<HomeScreenState> = _state
 
-    private val _events = MutableSharedFlow<HomePageEvent.Navigation>()
-    val events = _events.asSharedFlow()
-
-    init {
-        onEvent(HomePageEvent.LoadDecks)
-    }
-
-    fun onEvent(event: HomePageEvent) {
+    fun onEvent(event: HomeScreenEvent) {
         when (event) {
-            is HomePageEvent.LoadDecks -> loadDecks()
-            is HomePageEvent.DeckSelected -> navigateToCards(event.deckId)
-            is HomePageEvent.ShowAllDecks -> navigateToShowAllDecks()
-            is HomePageEvent.DeckDetails -> {  }
+            is HomeScreenEvent.NavigateToHome -> updateRoute(Screen.Home.route)
+            is HomeScreenEvent.NavigateToLearning -> updateRoute(Screen.Learning.route)
+            is HomeScreenEvent.SyncRoute -> updateRoute(event.route)
         }
     }
 
-    private fun loadDecks() {
-        viewModelScope.launch {
-            _state.value = HomePageState.Loading
-            deckRepository.getAllDecks()
-                .catch { e ->
-                    _state.value = HomePageState.Error("Error: ${e.message}")
-                }
-                .collect { decks ->
-                    _state.value = HomePageState.Loaded(decks)
-                }
-        }
-    }
-
-    private fun navigateToShowAllDecks() {
-        viewModelScope.launch {
-            _events.emit(HomePageEvent.Navigation.ToAllDecks)
-        }
-    }
-
-    private fun navigateToCards(deckId: Long) {
-        viewModelScope.launch {
-            _events.emit(HomePageEvent.Navigation.ToCards(deckId))
-        }
+    private fun updateRoute(route: String) {
+        _state.update { it.copy(currentRoute = route) }
     }
 }

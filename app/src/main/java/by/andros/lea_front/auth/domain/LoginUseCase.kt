@@ -1,7 +1,7 @@
 package by.andros.lea_front.auth.domain
 
 import by.andros.lea_front.auth.data.LoginResponse
-import jakarta.inject.Inject
+import javax.inject.Inject
 
 class LoginUseCase @Inject constructor(
     private val repository: AuthRepository

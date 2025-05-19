@@ -5,7 +5,7 @@ import by.andros.lea_front.auth.data.LoginRequest
 import by.andros.lea_front.auth.data.LoginResponse
 import by.andros.lea_front.auth.data.RegisterRequest
 import by.andros.lea_front.auth.data.RegisterResponse
-import jakarta.inject.Inject
+import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val authApiService: AuthApiService

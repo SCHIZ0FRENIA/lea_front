@@ -1,7 +1,7 @@
 package by.andros.lea_front.app.data
 
-import jakarta.inject.Inject
-import jakarta.inject.Singleton
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 
 @Singleton

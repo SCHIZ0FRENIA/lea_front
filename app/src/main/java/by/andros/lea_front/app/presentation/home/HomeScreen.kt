@@ -41,16 +41,25 @@ import by.andros.lea_front.app.presentation.home.learning_page.LearningPage
 import by.andros.lea_front.app.presentation.home.cards.AllCardsScreen
 import androidx.navigation.navArgument
 import androidx.navigation.NavType
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.MoreVert // For dropdown menu icon
 
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToShowAllDecks: () -> Unit,
-    onNavigateToShowCards: (Long) -> Unit
+    onNavigateToShowCards: (Long) -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     val navController = rememberNavController()
     val state by viewModel.state.collectAsState()
+    var showMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(navController) {
         navController.currentBackStackEntryFlow.collect { entry ->
@@ -75,6 +84,17 @@ fun HomeScreen(
         }
     }
 
+    // Listen for navigation events from ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is HomeScreenEvent.Navigation.ToLogin -> onNavigateToLogin()
+                is HomeScreenEvent.Navigation.ToHome -> {  }
+                is HomeScreenEvent.Navigation.ToLearning -> {  }
+            }
+        }
+    }
+
     Scaffold (
         topBar = {
             TopAppBar(
@@ -87,14 +107,39 @@ fun HomeScreen(
                     )
                 },
                 actions = {
-                    TextButton(
-                        onClick = {}
-                    ) {
-                        Text(
-                            text = "User",
-                            fontSize = 18.sp,
-                            letterSpacing = 0.5.sp,
-                        )
+                    Box {
+                        val buttonText = if (state.currentUser == "default") "Log in" else state.currentUser
+                        TextButton(
+                            onClick = {
+                                if (state.currentUser == "default") {
+                                    viewModel.onEvent(HomeScreenEvent.Logout)
+                                } else {
+                                    showMenu = true
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = buttonText,
+                                fontSize = 18.sp,
+                                letterSpacing = 0.5.sp,
+                            )
+                            if (state.currentUser != "default") {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Log out") },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.onEvent(HomeScreenEvent.Logout)
+                                }
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                 }

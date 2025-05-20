@@ -34,7 +34,12 @@ fun AppNavigation() {
         composable("home") {
             HomeScreen(
                 onNavigateToShowAllDecks = { navController.navigate("all_decks") },
-                onNavigateToShowCards = { deckId -> navController.navigate("all_cards/$deckId") }
+                onNavigateToShowCards = { deckId -> navController.navigate("all_cards/$deckId") },
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
 

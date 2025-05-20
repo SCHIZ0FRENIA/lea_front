@@ -1,12 +1,16 @@
 package by.andros.lea_front.auth.data
 
 data class LoginRequest (
-    val name: String,
+    val login: String,
     val password: String
 )
 
 data class LoginResponse(
-    val login: String,
-    val role: String,
+    val message: String,
     val token: String,
+    val role: String,
+)
+
+data class GoogleLoginRequest(
+    val auth_code: String,
 )

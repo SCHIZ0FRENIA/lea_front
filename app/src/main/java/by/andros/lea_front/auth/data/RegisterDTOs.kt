@@ -7,7 +7,7 @@ data class RegisterRequest(
 )
 
 data class RegisterResponse(
-    val login: String,
-    val role: String,
+    val message: String,
     val token: String,
+    val role: String,
 )

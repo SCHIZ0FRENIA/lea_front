@@ -198,7 +198,14 @@ fun HomeScreen(
                         onNavigateToShowCards = onNavigateToShowCards
                     )
                 }
-                composable(Screen.Learning.route) { LearningPage() }
+                composable(Screen.Learning.route) {
+                    Log.d("HomeScreenNav", "Navigating to LearningPage composable")
+                    LearningPage(onExitLearning = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    })
+                }
 
                 composable(
                     route = "all_cards/{deckId}",

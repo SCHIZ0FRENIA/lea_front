@@ -11,23 +11,48 @@ import by.andros.lea_front.app.presentation.home.cards.AllCardsScreen
 import by.andros.lea_front.app.presentation.home.decks.AllDecksScreen
 import by.andros.lea_front.auth.presentation.login.LoginScreen
 import by.andros.lea_front.auth.presentation.registration.RegistrationScreen
+import by.andros.lea_front.splash.SplashScreen
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(navController = navController, startDestination = "splash") {
+        composable("splash") {
+            SplashScreen(
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                },
+                onNavigateToHome = {
+                    navController.navigate("home") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable("login") {
             LoginScreen(
                 onNavigateToRegistration = { navController.navigate("registration") },
-                onNavigateToHome = { navController.navigate("home") }
+                onNavigateToHome = {
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
 
         composable("registration") {
             RegistrationScreen(
                 onNavigateToLogin = { navController.navigate("login") },
-                onNavigateToHome = { navController. navigate("home") }
+                onNavigateToHome = { 
+                    navController.navigate("home") {
+                        popUpTo("registration") { inclusive = true }
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
             )
         }
 

@@ -13,6 +13,9 @@ interface CardDao {
     @Query("SELECT * FROM cards WHERE deck_id = :deckId ORDER BY next_review ASC")
     fun getCardsByDeck(deckId: Long): Flow<List<Card>>
     
+    @Query("SELECT COUNT(*) FROM cards WHERE deck_id = :deckId")
+    fun getCardCountByDeckId(deckId: Long): Flow<Int>
+    
     @Query("SELECT * FROM cards WHERE id = :cardId")
     fun getCardById(cardId: Long): Flow<Card>
     

@@ -9,12 +9,11 @@ sealed class LoginEvent {
         val password: String
     ) : LoginEvent()
     data object WithoutAuth: LoginEvent()
-    // Modified GoogleSignIn event to optionally carry the authCode
     data class GoogleSignIn(val authCode: String? = null) : LoginEvent()
 
     sealed class Navigation {
         data object ToHome: Navigation()
         data object ToRegistration: Navigation()
-        data object LaunchGoogleSignIn: Navigation() // This was the missing reference in LoginScreen
+        data object LaunchGoogleSignIn: Navigation()
     }
 }

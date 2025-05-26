@@ -24,9 +24,24 @@ class AuthRepositoryImpl @Inject constructor(
 
     private val FLASK_SECRET_KEY = "JKSDHVUPINJEWIUVH:DSNVBOKKJ!@#J!@#()IJFDNSNV*#(@RHFVJDN(*#EINDV)#@()IFJIVDSO"
 
+    override fun getJwtToken(): String? {
+        return sharedPreferences.getString("jwt", null)
+    }
+
     override suspend fun login(login: String, password: String): Result<LoginResponse> {
         try {
             val response = authApiService.login(LoginRequest(login, password))
+            if (!response.isSuccessful) {
+                // Try to parse error body for a message
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    val json = JsonParser.parseString(errorBody).asJsonObject
+                    json["message"]?.asString ?: "Login failed. Please check your credentials."
+                } catch (e: Exception) {
+                    errorBody ?: "Login failed. Please check your credentials."
+                }
+                return Result.failure(Exception(errorMessage))
+            }
             val token = response.body()!!.token
 
             Log.d("JWT_TOKEN_RECEIVED", token)

@@ -1,5 +1,6 @@
 package by.andros.lea_front.auth.presentation.login
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log // Added import for Log
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
+
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
@@ -62,21 +64,7 @@ fun LoginScreen(
                 is LoginEvent.Navigation.ToHome -> onNavigateToHome()
                 is LoginEvent.Navigation.ToRegistration -> onNavigateToRegistration()
                 is LoginEvent.Navigation.LaunchGoogleSignIn -> {
-                    // Construct the Google OAuth URL
-                    val clientId = "YOUR_GOOGLE_ANDROID_CLIENT_ID" // Replace with your Android Client ID
-                    val redirectUri = "leafront://oauth2redirect" // Must match your AndroidManifest.xml and Google Console
-                    val scope = "openid profile email" // Request necessary scopes
-                    val authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" +
-                            "client_id=$clientId&" +
-                            "redirect_uri=$redirectUri&" +
-                            "response_type=code&" + // Request an authorization code
-                            "scope=$scope&" +
-                            "access_type=offline&" + // To get a refresh token
-                            "prompt=consent" // To ensure consent screen is shown
-                    Log.d("OIDC", "Launching Google Sign-In URL: $authUrl")
 
-                    val customTabsIntent = CustomTabsIntent.Builder().build()
-                    customTabsIntent.launchUrl(context, Uri.parse(authUrl))
                 }
             }
         }

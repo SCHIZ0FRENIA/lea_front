@@ -8,4 +8,5 @@ interface AuthRepository {
     suspend fun register(login: String, password: String): Result<RegisterResponse>
     suspend fun clearAuthData()
     suspend fun googleLogin(idToken: String): Result<LoginResponse>
+    fun getJwtToken(): String?
 }

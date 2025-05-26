@@ -36,9 +36,9 @@ class LoginViewModel @Inject constructor(
             is LoginEvent.LoginChanged -> _state.update { it.copy(login = event.login, error = null) }
             is LoginEvent.PasswordChanged -> _state.update { it.copy(password = event.password, error = null) }
             is LoginEvent.Submit -> login()
-            is LoginEvent.ToRegistration -> { /* Handled by navigation in LoginScreen */ }
+            is LoginEvent.ToRegistration -> {}
             is LoginEvent.WithoutAuth -> navigateToHomeWithoutAuth()
-            is LoginEvent.GoogleSignIn -> handleGoogleSignIn(event.authCode) // Handle Google Sign-In
+            is LoginEvent.GoogleSignIn -> TODO()
         }
     }
 
@@ -50,35 +50,17 @@ class LoginViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = false, isSuccess = true) }
                 _events.emit(LoginEvent.Navigation.ToHome)
             }.onFailure { e ->
-                _state.update { it.copy(isLoading = false, error = e.message) }
+                _state.update { it.copy(isLoading = false, error = if (e.message.isNullOrBlank()) "Login failed. Please check your credentials." else e.message) }
             }
         }
     }
 
     private fun navigateToHomeWithoutAuth() {
         viewModelScope.launch {
-            // Clear any existing auth data if user chooses to proceed without account
             authRepository.clearAuthData()
             _events.emit(LoginEvent.Navigation.ToHome)
         }
     }
 
-    private fun handleGoogleSignIn(authCode: String?) {
-        viewModelScope.launch {
-            if (authCode == null) {
-                // If authCode is null, it means the button was pressed, so launch browser
-                _launchGoogleSignInEvents.emit(Unit)
-            } else {
-                // If authCode is present, it's a callback from the browser
-                _state.update { it.copy(isLoading = true, error = null, isSuccess = false) }
-                val result = authRepository.googleLogin(authCode)
-                result.onSuccess {
-                    _state.update { it.copy(isLoading = false, isSuccess = true) }
-                    _events.emit(LoginEvent.Navigation.ToHome)
-                }.onFailure { e ->
-                    _state.update { it.copy(isLoading = false, error = e.message) }
-                }
-            }
-        }
-    }
+
 }

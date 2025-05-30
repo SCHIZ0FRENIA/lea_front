@@ -2,6 +2,7 @@ package by.andros.lea_front
 
 import android.content.Context
 import android.content.SharedPreferences
+import by.andros.lea_front.theme.PREFS_NAME
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,7 +17,7 @@ object AppModules {
     @Singleton
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
         return context.getSharedPreferences(
-            "lea_prefs",
+            PREFS_NAME,
             Context.MODE_PRIVATE,
         )
     }

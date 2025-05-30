@@ -42,6 +42,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.google.accompanist.systemuicontroller)
+    implementation(libs.google.accompanist.flowlayout)
 
     implementation(libs.androidx.security.crypto)
 

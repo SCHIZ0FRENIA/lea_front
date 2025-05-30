@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import by.andros.lea_front.app.data.Card
 import by.andros.lea_front.app.data.DeckRepository
 import by.andros.lea_front.app.data.CardRepository
+import by.andros.lea_front.app.data.StatisticsRepository
 import by.andros.lea_front.app.data.model.DeckWithCardCount
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +40,7 @@ sealed class LearningUserEvent {
 class LearningViewModel @Inject constructor(
     private val deckRepository: DeckRepository,
     private val cardRepository: CardRepository,
+    private val statisticsRepository: StatisticsRepository,
     private val learningService: LearningService
 ) : ViewModel() {
 
@@ -154,6 +156,10 @@ class LearningViewModel @Inject constructor(
                     triggerDeckRefresh()
                     return@launch
                 }
+                
+                // Start recording session in statistics
+                statisticsRepository.startLearningSession(cardsForSession.size)
+                
                 learningService.startSession(cardsForSession)
                 updateUiForCurrentCard()
             } catch (e: Exception) {
@@ -169,9 +175,24 @@ class LearningViewModel @Inject constructor(
     }
 
     private fun submitAnswerInternal(rating: Int) {
+        val currentCard = learningService.getCurrentCard()
+        
+        // Record the answer for statistics
+        viewModelScope.launch {
+            currentCard?.id?.let { cardId ->
+                statisticsRepository.recordCardAnswer(cardId, rating)
+            }
+        }
+        
         learningService.submitAnswer(rating)
         if (learningService.isSessionFinished()) {
             val stats = learningService.getStats()
+            
+            // End the session in statistics
+            viewModelScope.launch {
+                statisticsRepository.endLearningSession()
+            }
+            
             if (stats != null) {
                 _uiState.value = LearningUiState.SessionFinished(stats)
             } else {
@@ -242,6 +263,11 @@ class LearningViewModel @Inject constructor(
     }
 
     private fun endSessionAndGoToDeckSelection() {
+        // End the session in statistics
+        viewModelScope.launch {
+            statisticsRepository.endLearningSession()
+        }
+        
         learningService.endSession()
         currentSelectedDeckIds.clear()
         _uiState.value = LearningUiState.Idle

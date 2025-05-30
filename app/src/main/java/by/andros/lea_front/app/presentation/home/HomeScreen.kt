@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.filled.MoreVert // For dropdown menu icon
+import androidx.compose.material.icons.filled.AccountCircle
 
 
 @Composable
@@ -55,7 +56,9 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToShowAllDecks: () -> Unit,
     onNavigateToShowCards: (Long) -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToPublicDecks: () -> Unit
 ) {
     val navController = rememberNavController()
     val state by viewModel.state.collectAsState()
@@ -133,6 +136,22 @@ fun HomeScreen(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
+                                text = { Text("My Profile") },
+                                onClick = {
+                                    showMenu = false
+                                    onNavigateToProfile()
+                                }
+                            )
+                            
+                            DropdownMenuItem(
+                                text = { Text("Public Decks") },
+                                onClick = {
+                                    showMenu = false
+                                    onNavigateToPublicDecks()
+                                }
+                            )
+                            
+                            DropdownMenuItem(
                                 text = { Text("Log out") },
                                 onClick = {
                                     showMenu = false
@@ -173,6 +192,18 @@ fun HomeScreen(
                         )
                     )
                 }
+                // Profile button
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.AccountCircle, contentDescription = "Profile") },
+                    label = { Text("Profile") },
+                    selected = false,
+                    onClick = { onNavigateToProfile() },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF8B5CF6),
+                        selectedTextColor = Color(0xFF8B5CF6),
+                        indicatorColor = Color.Transparent,
+                    )
+                )
             }
         }
     ) { paddingValues ->
@@ -195,7 +226,8 @@ fun HomeScreen(
                 composable(Screen.Home.route) {
                     HomePage(
                         onNavigateToShowAllDecks = onNavigateToShowAllDecks,
-                        onNavigateToShowCards = onNavigateToShowCards
+                        onNavigateToShowCards = onNavigateToShowCards,
+                        onNavigateToPublicDecks = onNavigateToPublicDecks
                     )
                 }
                 composable(Screen.Learning.route) {
@@ -214,7 +246,12 @@ fun HomeScreen(
                     val deckId = it.arguments?.getLong("deckId")
                     if (deckId != null) {
                         AllCardsScreen(
-                            onNavigateBack = { navController.popBackStack() }
+                            deckId = deckId,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToCardDetail = { cardId ->
+                                // For now just navigate back as we don't have a card detail screen
+                                navController.popBackStack()
+                            }
                         )
                     } else {
                     }

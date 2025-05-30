@@ -7,14 +7,15 @@ import androidx.room.RoomDatabase
 import javax.inject.Singleton
 
 @Database(
-    entities = [Deck::class, Card::class],
-    version = 2,
+    entities = [Deck::class, Card::class, LearningSession::class, CardAnswer::class],
+    version = 3,
     exportSchema = false
 )
 @Singleton
 abstract class AppDatabase : RoomDatabase() {
     abstract fun deckDao(): DeckDao
     abstract fun cardDao(): CardDao
+    abstract fun statisticsDao(): StatisticsDao
     
     companion object {
         fun create(context: Context): AppDatabase {

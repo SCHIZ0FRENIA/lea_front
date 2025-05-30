@@ -1,5 +1,6 @@
 package by.andros.lea_front.app.presentation.home.learning_page
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import by.andros.lea_front.learning.LearningSessionStats
 import kotlin.math.max
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun RatingHistogram(
     ratingCounts: Map<Int, Int>,

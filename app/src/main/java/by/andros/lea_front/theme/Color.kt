@@ -1,11 +1,13 @@
-package by.andros.android_front.ui.theme
+package by.andros.lea_front.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// Dark theme colors (more violet)
+val Violet80 = Color(0xFFD8B4FE)    // Light violet
+val VioletGrey80 = Color(0xFFCBB9ED) // Light violet-grey
+val Lilac80 = Color(0xFFDDC4FF)      // Light lilac
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Light theme colors (more violet)
+val Violet40 = Color(0xFF8B5CF6)     // Medium violet
+val VioletGrey40 = Color(0xFF7E6C9D) // Medium violet-grey
+val Lilac40 = Color(0xFF9966CC)      // Medium lilac

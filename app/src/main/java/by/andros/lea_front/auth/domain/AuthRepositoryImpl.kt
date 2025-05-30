@@ -8,24 +8,32 @@ import by.andros.lea_front.auth.data.LoginRequest
 import by.andros.lea_front.auth.data.LoginResponse
 import by.andros.lea_front.auth.data.RegisterRequest
 import by.andros.lea_front.auth.data.RegisterResponse
-import com.google.gson.JsonObject
+import by.andros.lea_front.auth.data.UserDto
+import by.andros.lea_front.auth.data.UserListResponse
+import by.andros.lea_front.auth.data.UserRoleResponse
+import by.andros.lea_front.auth.data.DeleteUserResponse
+import by.andros.lea_front.auth.data.GoogleLoginRequest
+import by.andros.lea_front.auth.service.JwtService
 import com.google.gson.JsonParser
 import javax.inject.Inject
 
-import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.security.Keys
-import java.nio.charset.StandardCharsets
-import java.security.Key
-
 class AuthRepositoryImpl @Inject constructor(
     private val authApiService: AuthApiService,
-    private val sharedPreferences: SharedPreferences
+    private val sharedPreferences: SharedPreferences,
+    private val jwtService: JwtService
 ) : AuthRepository {
-
-    private val FLASK_SECRET_KEY = "JKSDHVUPINJEWIUVH:DSNVBOKKJ!@#J!@#()IJFDNSNV*#(@RHFVJDN(*#EINDV)#@()IFJIVDSO"
 
     override fun getJwtToken(): String? {
         return sharedPreferences.getString("jwt", null)
+    }
+    
+    override fun getUserLogin(): String? {
+        return sharedPreferences.getString("login", null)
+    }
+    
+    override fun isUserAdmin(): Boolean {
+        val token = getJwtToken() ?: return false
+        return jwtService.isUserAdmin(token)
     }
 
     override suspend fun login(login: String, password: String): Result<LoginResponse> {
@@ -46,87 +54,98 @@ class AuthRepositoryImpl @Inject constructor(
 
             Log.d("JWT_TOKEN_RECEIVED", token)
 
-            val secretKey: Key = Keys.hmacShaKeyFor(FLASK_SECRET_KEY.toByteArray(StandardCharsets.UTF_8))
-
-            val claims = Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .setAllowedClockSkewSeconds(5)
-                .build()
-                .parseClaimsJws(token)
-                .body
-
-            val identityClaims = claims["sub"] as? Map<*, *>
+            // Use JwtService to parse token
+            val identityClaims = jwtService.parseToken(token)
 
             if (identityClaims == null) {
-                Log.e("AUTH_ERROR", "JWT 'sub' claim is null or not a map after JJWT parsing")
-                return Result.failure(IllegalStateException("JWT 'sub' claim missing or malformed"))
+                Log.e("AUTH_ERROR", "JWT parsing failed")
+                return Result.failure(IllegalStateException("JWT parsing failed"))
             }
 
             val userLogin = identityClaims["login"] as? String
             if (userLogin == null) {
-                Log.e("AUTH_ERROR", "Login not found in 'sub' claim")
+                Log.e("AUTH_ERROR", "Login not found in JWT claims")
                 return Result.failure(IllegalStateException("Login information missing from token"))
             }
 
-            Log.d("JWT_IDENTITY_CLAIM_PARSED", "Login: $userLogin, User ID: ${identityClaims["user_id"]}, Role: ${identityClaims["role"]}")
+            // Get role either from token claim or response body
+            val role = identityClaims["role"] as? String ?: response.body()!!.role
 
             sharedPreferences.edit(true) {
                 putString("jwt", token)
-                putString("role", response.body()!!.role)
+                putString("role", role)
                 putString("login", userLogin)
             }
             return Result.success((response.body()!!))
         } catch (e: Exception) {
-            Log.e("AUTH_GLOBAL_ERROR", "Error during login with JJWT and Gson: ${e.message}", e)
+            Log.e("AUTH_GLOBAL_ERROR", "Error during login: ${e.message}", e)
             return Result.failure(e)
         }
     }
 
     override suspend fun register(login: String, password: String): Result<RegisterResponse> {
         return try {
+            // Regular users always get the "user" role
             val registerResponse = authApiService.register(RegisterRequest(login, password, "user"))
-            if (registerResponse.isSuccessful) {
-                val token = registerResponse.body()!!.token
-                val role = registerResponse.body()!!.role
-
-                Log.d("JWT_TOKEN_RECEIVED_REG", token)
-
-                val secretKey: Key = Keys.hmacShaKeyFor(FLASK_SECRET_KEY.toByteArray(StandardCharsets.UTF_8))
-
-                val claims = Jwts.parserBuilder()
-                    .setSigningKey(secretKey)
-                    .setAllowedClockSkewSeconds(5)
-                    .build()
-                    .parseClaimsJws(token)
-                    .body
-
-                val identityClaims = claims["sub"] as? Map<*, *>
-
-                if (identityClaims == null) {
-                    Log.e("AUTH_ERROR_REG", "JWT 'sub' claim is null or not a map after JJWT parsing in registration")
-                    return Result.failure(IllegalStateException("JWT 'sub' claim missing or malformed in registration"))
-                }
-
-                val userLogin = identityClaims["login"] as? String
-                if (userLogin == null) {
-                    Log.e("AUTH_ERROR_REG", "Login not found in 'sub' claim in registration")
-                    return Result.failure(IllegalStateException("Login information missing from token in registration"))
-                }
-
-                Log.d("JWT_IDENTITY_CLAIM_PARSED_REG", "Login: $userLogin, Role: ${identityClaims["role"]}")
-
-                sharedPreferences.edit(true) {
-                    putString("jwt", token)
-                    putString("role", role)
-                    putString("login", userLogin)
-                }
-                Result.success(registerResponse.body()!!)
-            } else {
-                Result.failure(Exception(registerResponse.errorBody()?.string() ?: "Registration failed"))
-            }
+            handleRegisterResponse(registerResponse)
         } catch (e: Exception) {
             Log.e("AUTH_GLOBAL_ERROR_REG", e.toString())
             Result.failure(e)
+        }
+    }
+    
+    override suspend fun registerAdmin(login: String, password: String): Result<RegisterResponse> {
+        return try {
+            // Check if the current user is admin
+            if (!isUserAdmin()) {
+                return Result.failure(SecurityException("Only admins can create admin accounts"))
+            }
+            
+            val token = getJwtToken() ?: return Result.failure(SecurityException("Authentication required"))
+            
+            // Create an admin user with "admin" role
+            val registerResponse = authApiService.registerAdmin(
+                "Bearer $token", 
+                RegisterRequest(login, password, "admin")
+            )
+            handleRegisterResponse(registerResponse)
+        } catch (e: Exception) {
+            Log.e("AUTH_GLOBAL_ERROR_REG_ADMIN", e.toString())
+            Result.failure(e)
+        }
+    }
+    
+    private suspend fun handleRegisterResponse(registerResponse: retrofit2.Response<RegisterResponse>): Result<RegisterResponse> {
+        if (registerResponse.isSuccessful) {
+            val token = registerResponse.body()!!.token
+            val role = registerResponse.body()!!.role
+
+            Log.d("JWT_TOKEN_RECEIVED_REG", token)
+
+            // Use JwtService to parse token
+            val identityClaims = jwtService.parseToken(token)
+
+            if (identityClaims == null) {
+                Log.e("AUTH_ERROR_REG", "JWT parsing failed in registration")
+                return Result.failure(IllegalStateException("JWT parsing failed in registration"))
+            }
+
+            val userLogin = identityClaims["login"] as? String
+            if (userLogin == null) {
+                Log.e("AUTH_ERROR_REG", "Login not found in JWT claims in registration")
+                return Result.failure(IllegalStateException("Login information missing from token in registration"))
+            }
+
+            Log.d("JWT_IDENTITY_CLAIM_PARSED_REG", "Login: $userLogin, Role: ${identityClaims["role"]}")
+
+            sharedPreferences.edit(true) {
+                putString("jwt", token)
+                putString("role", role)
+                putString("login", userLogin)
+            }
+            return Result.success(registerResponse.body()!!)
+        } else {
+            return Result.failure(Exception(registerResponse.errorBody()?.string() ?: "Registration failed"))
         }
     }
 
@@ -167,6 +186,122 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e("AUTH_GLOBAL_ERROR_GOOGLE_LOGIN", e.toString())
             Result.failure(e)
+        }
+    }
+    
+    override suspend fun grantAdminRole(userId: String): Result<UserRoleResponse> {
+        return try {
+            // Check if the current user is admin
+            if (!isUserAdmin()) {
+                return Result.failure(SecurityException("Only admins can grant admin privileges"))
+            }
+            
+            val token = getJwtToken() ?: return Result.failure(SecurityException("Authentication required"))
+            
+            val response = authApiService.grantAdminRole("Bearer $token", userId)
+            
+            if (response.isSuccessful) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    val json = JsonParser.parseString(errorBody).asJsonObject
+                    json["message"]?.asString ?: "Failed to grant admin role"
+                } catch (e: Exception) {
+                    errorBody ?: "Failed to grant admin role"
+                }
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Log.e("AUTH_ADMIN_GRANT", "Error granting admin role: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun revokeAdminRole(userId: String): Result<UserRoleResponse> {
+        return try {
+            // Check if the current user is admin
+            if (!isUserAdmin()) {
+                return Result.failure(SecurityException("Only admins can revoke admin privileges"))
+            }
+            
+            val token = getJwtToken() ?: return Result.failure(SecurityException("Authentication required"))
+            
+            val response = authApiService.revokeAdminRole("Bearer $token", userId)
+            
+            if (response.isSuccessful) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    val json = JsonParser.parseString(errorBody).asJsonObject
+                    json["message"]?.asString ?: "Failed to revoke admin role"
+                } catch (e: Exception) {
+                    errorBody ?: "Failed to revoke admin role"
+                }
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Log.e("AUTH_ADMIN_REVOKE", "Error revoking admin role: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun getAllUsers(): Result<List<UserDto>> {
+        return try {
+            // Check if the current user is admin
+            if (!isUserAdmin()) {
+                return Result.failure(SecurityException("Only admins can view all users"))
+            }
+            
+            val token = getJwtToken() ?: return Result.failure(SecurityException("Authentication required"))
+            
+            val response = authApiService.getAllUsers("Bearer $token")
+            
+            if (response.isSuccessful) {
+                Result.success(response.body()!!.users)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    val json = JsonParser.parseString(errorBody).asJsonObject
+                    json["message"]?.asString ?: "Failed to get users"
+                } catch (e: Exception) {
+                    errorBody ?: "Failed to get users"
+                }
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Log.e("AUTH_GET_USERS", "Error getting users: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteUser(userId: String): Result<DeleteUserResponse> {
+        return try {
+            // Check if the current user is admin
+            if (!isUserAdmin()) {
+                return Result.failure<DeleteUserResponse>(SecurityException("Only admins can delete users"))
+            }
+            
+            val token = getJwtToken() ?: return Result.failure<DeleteUserResponse>(SecurityException("Authentication required"))
+            
+            val response = authApiService.deleteUser("Bearer $token", userId)
+            
+            if (response.isSuccessful) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    val json = JsonParser.parseString(errorBody).asJsonObject
+                    json["message"]?.asString ?: "Failed to delete user"
+                } catch (e: Exception) {
+                    errorBody ?: "Failed to delete user"
+                }
+                Result.failure<DeleteUserResponse>(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Log.e("AUTH_DELETE_USER", "Error deleting user: ${e.message}", e)
+            Result.failure<DeleteUserResponse>(e)
         }
     }
 }

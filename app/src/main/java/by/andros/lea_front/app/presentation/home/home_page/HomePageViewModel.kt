@@ -1,4 +1,4 @@
-package by.andros.lea_front.app.presentation.home.home_page
+dpackage by.andros.lea_front.app.presentation.home.home_page
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 sealed class HomePageState {
     data object Loading : HomePageState()
@@ -43,7 +46,22 @@ class HomePageViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     init {
+        // Load decks initially
         onEvent(HomePageEvent.LoadDecks)
+        
+        // Set up an observer for the refresh trigger
+        setupRefreshObserver()
+    }
+    
+    private fun setupRefreshObserver() {
+        // If the refreshTrigger is observable, use this code to observe it
+        // Otherwise, we rely on manual refresh when returning to this screen
+        deckRepository.refreshTrigger
+            .onEach {
+                // Reload decks when the trigger is fired
+                loadDecks()
+            }
+            .launchIn(viewModelScope)
     }
 
     fun onEvent(event: HomePageEvent) {

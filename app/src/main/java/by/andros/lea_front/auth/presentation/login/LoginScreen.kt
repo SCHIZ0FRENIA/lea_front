@@ -7,7 +7,9 @@ import android.util.Log // Added import for Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,7 +24,9 @@ import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,17 +50,6 @@ fun LoginScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
-    // Launcher for Custom Tabs (browser)
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-        onResult = { result ->
-            // This callback is for when the Custom Tab activity finishes.
-            // The OIDC redirect will be handled by the deep link in AndroidManifest.xml
-            // and passed to MainActivity, then to ViewModel.
-            // This specific launcher is primarily for initiating the browser.
-            // We don't expect a direct result here for the auth code.
-        }
-    )
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -70,99 +63,89 @@ fun LoginScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(
-                horizontal = 58.dp,
-            ),
-        verticalArrangement = Arrangement.Center
+    // Wrap the entire screen in a Surface that uses MaterialTheme's background color
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-
-        OutlinedTextField(
-            value = state.login,
-            onValueChange = { viewModel.onEvent(LoginEvent.LoginChanged(it)) },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        if (!state.isLoading && !state.isSuccess){
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        if (state.isLoading) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
-
-        state.error?.let { error ->
-            Text(
-                text = error,
-                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
-                color = Color.Red
-            )
-        }
-
-        if (state.isSuccess) {
-            Text(
-                text = "Login Successful!",
-                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-            )
-        }
-
-        ElevatedButton(
-            onClick = { viewModel.onEvent(LoginEvent.Submit) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isLoading
-        ) {
-            Text("Login")
-        }
-
-        Row (
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.Center
+                .fillMaxSize()
+                .padding(
+                    horizontal = 58.dp,
+                ),
+            verticalArrangement = Arrangement.Center
         ) {
-            FilledIconButton(
-                onClick = {
-                    // Trigger the Google Sign-In flow
-                    viewModel.onEvent(LoginEvent.GoogleSignIn(authCode = null))
+
+            OutlinedTextField(
+                value = state.login,
+                onValueChange = { viewModel.onEvent(LoginEvent.LoginChanged(it)) },
+                label = { Text("Login") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = state.password,
+                onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
+                label = { Text("Password") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (!state.isLoading && !state.isSuccess){
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            if (state.isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
+            state.error?.let { error ->
+                Text(
+                    text = error,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                    color = Color.Red
+                )
+            }
+
+            if (state.isSuccess) {
+                Text(
+                    text = "Login Successful!",
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                )
+            }
+
+            ElevatedButton(
+                onClick = { viewModel.onEvent(LoginEvent.Submit) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isLoading
+            ) {
+                Text("Login")
+            }
+
+            Row (
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TextButton (
+                    onClick = {
+                        onNavigateToRegistration()
+                    },
+                    enabled = !state.isLoading
+                ) {
+                    Text("Sign up")
                 }
-            ) {
-                Icon(Icons.Filled.AccountCircle, "Sign in with Google")
-            }
-        }
 
-        Row (
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            TextButton (
-                onClick = {
-                    onNavigateToRegistration()
-                },
-                enabled = !state.isLoading
-            ) {
-                Text("Sign up")
-            }
+                Spacer(modifier = Modifier.width(12.dp))
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            TextButton (
-                onClick = {
-                    onNavigateToHome()
-                },
-                enabled = !state.isLoading
-            ) {
-                Text("Continue without account")
+                TextButton (
+                    onClick = {
+                        onNavigateToHome()
+                    },
+                    enabled = !state.isLoading
+                ) {
+                    Text("Continue without account")
+                }
             }
         }
     }
